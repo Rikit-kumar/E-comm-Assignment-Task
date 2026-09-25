@@ -70,10 +70,49 @@ export const registerValidator = [
 
     if (!errors.isEmpty()) {
       return res.status(400).json({
-        message: "Invalid Request",
+        message: "Validation failed",
         errors: errors.array(),
       });
     }
+    next();
+  },
+];
+
+export const loginValidator = [
+  body("email")
+    .exists()
+    .withMessage("Email is required")
+    .bail()
+    .isString()
+    .withMessage("Email must be a String value")
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage("Email cannot be empty")
+    .bail()
+    .isEmail()
+    .withMessage("Enter a valid email address")
+    .bail(),
+  body("password")
+    .exists()
+    .withMessage("Password is required")
+    .bail()
+    .isString()
+    .withMessage("Password must be a string")
+    .bail()
+    .notEmpty()
+    .withMessage("Password cannot be empty")
+    .bail(),
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: "Validation failed",
+        errors: errors.array(),
+      });
+    }
+
     next();
   },
 ];
