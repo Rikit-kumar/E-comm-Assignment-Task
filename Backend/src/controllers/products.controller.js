@@ -48,6 +48,32 @@ export const getAllProductsController = async (req, res) => {
   }
 };
 
+export const getSingleProductByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await productModel
+      .findById(id)
+      .populate("user", "name email");
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    return res.status(200).json({
+      message: "Product fetched successfully",
+      data: {
+        product,
+      },
+    });
+  } catch (error) {
+    console.log("get single products controller error", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
 export const updateProductController = async (req, res) => {
   try {
     const { id } = req.params;
@@ -79,6 +105,32 @@ export const updateProductController = async (req, res) => {
     });
   } catch (error) {
     console.log("update product controller error", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const deleteProductController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleteProduct = await productModel.findOneAndDelete({
+      _id: id,
+      user: req.user.id,
+    });
+
+    if (!deleteProduct) {
+      return res.status(404).json({
+        message:
+          "Product not found or you are not authorized to delete this product",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.log("delete product controller error", error);
     return res.status(500).json({
       message: "Internal Server Error",
     });
