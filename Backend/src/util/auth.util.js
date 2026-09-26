@@ -12,3 +12,11 @@ export const generateToken = ({ id }) => {
 
   return { accessToken, refreshToken };
 };
+
+export const verifyAccessToken = (token) => {
+  return jwt.verify(token, config.ACCESS_TOKEN_SECRET);
+};
+
+export const verifyRefreshToken = (token) => {
+  return jwt.verify(token, config.REFRESH_TOKEN_SECRET);
+};

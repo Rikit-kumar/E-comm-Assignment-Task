@@ -1,6 +1,6 @@
 import userModel from "../model/user.model.js";
 import bcrypt from "bcrypt";
-import { generateToken } from "../util/auth.util.js";
+import { generateToken, verifyRefreshToken } from "../util/auth.util.js";
 
 export const registerUserController = async (req, res) => {
   try {
@@ -27,7 +27,7 @@ export const registerUserController = async (req, res) => {
     });
 
     return res.status(201).json({
-      message: "User registered successfull",
+      message: "User registered successfully",
       data: {
         user: {
           id: user._id,
@@ -72,6 +72,7 @@ export const loginUserController = async (req, res) => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.status(200).json({
@@ -92,3 +93,67 @@ export const loginUserController = async (req, res) => {
     });
   }
 };
+
+export const tokenRefreshController = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        message: "Unauthorized, Refresh token not found",
+      });
+    }
+
+    try {
+      const decoded = verifyRefreshToken(refreshToken);
+
+      const user = await userModel.findById(decoded.id);
+
+      if (!user) {
+        return res.status(401).json({
+          message: "Unauthorized, User not found",
+        });
+      }
+
+      if (refreshToken !== user.refreshToken) {
+        await userModel.findByIdAndUpdate(user._id, {
+          refreshToken: null,
+        });
+
+        res.clearCookie("refreshToken")
+
+        return res.status(401).json({
+          message: "Unauthorized, Refresh token mismatch",
+        });
+      }
+
+      const { accessToken, refreshToken: newRefreshToken } = generateToken({
+        id: user._id,
+      });
+
+      await userModel.findByIdAndUpdate(user._id, {
+        refreshToken: newRefreshToken,
+      });
+
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+      });
+
+      res.status(200).json({
+        message: "Tokens refresh successfully",
+        accessToken,
+      });
+    } catch (error) {
+      return res.status(401).json({
+        message: "Unauthorized, Invalid or expire refresh token",
+      });
+    }
+  } catch (error) {
+    console.log("token refresh controller error", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
+
